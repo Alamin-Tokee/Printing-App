@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt6.QtCore import QMarginsF
-from PyQt6.QtGui import QPageLayout
+from PyQt6.QtGui import QPageLayout, QPixmap
 from datetime import datetime
 from PyQt6.QtGui import QTextDocument, QPageSize, QPageLayout
 from PyQt6.QtCore import QSizeF
@@ -97,15 +97,31 @@ class DifoPanel(QMainWindow):
         input_layout.addWidget(self.barcode)
         input_layout.addWidget(print_btn)
         print_btn.clicked.connect(self.print_label)
+        self.barcode.returnPressed.connect(self.print_label)
+        # print_btn.setDefault(True)
+        # print_btn.setAutoDefault(True)
 
         content_layout = QHBoxLayout()
         self.preview_area = QTextEdit()
         self.preview_area.setReadOnly(True)
         self.preview_area.setPlaceholderText("User details will appear here...")
+        self.preview_area.setText("Barcode scans will appear here")
+
+        pixmap = QPixmap("example.jpg")
+
+        if not pixmap.isNull():
+            self.preview_area.setHtml("""
+                <div align="center">
+                    <p>Barcode scans will appear here</p>
+                    <img src="example.jpg" width="350" height="300" />
+                </div>
+            """)
+                
 
         self.previous_scan = QTextEdit()
         self.previous_scan.setReadOnly(True)
         self.previous_scan.setPlaceholderText("Previous Scans...")
+       
 
 
         layout.addWidget(title)
