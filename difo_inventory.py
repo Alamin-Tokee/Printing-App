@@ -34,9 +34,11 @@ class DifoPanel(QMainWindow):
 
         self.dashboard_page = self.create_dashboard_page()
         self.users_page = self.create_users_page()
+        self.print_page = self.create_print_page()
 
         self.stack.addWidget(self.dashboard_page)
         self.stack.addWidget(self.users_page)
+        self.stack.addWidget(self.print_page)
 
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.stack)
@@ -50,19 +52,20 @@ class DifoPanel(QMainWindow):
         sidebar.setFixedWidth(220)
 
         layout = QVBoxLayout(sidebar)
-        title = QLabel("FIFO Inventory")
+        title = QLabel("ECD Printing")
         title.setObjectName("title")
         layout.addWidget(title)
         btn_dashboard = QPushButton("Dashboard")
         btn_users = QPushButton("Mapping")
-        print_users = QPushButton("Printing")
+        print_label = QPushButton("Printing")
 
         btn_dashboard.clicked.connect(self.show_dashboard)
         btn_users.clicked.connect(self.show_users)
+        print_label.clicked.connect(self.show_print_label)
 
         layout.addWidget(btn_dashboard)
         layout.addWidget(btn_users)
-        layout.addWidget(print_users)
+        layout.addWidget(print_label)
         layout.addStretch()
 
         return sidebar
@@ -73,6 +76,65 @@ class DifoPanel(QMainWindow):
 
     def show_users(self):
         self.stack.setCurrentIndex(1)
+
+    def show_print_label(self):
+        self.stack.setCurrentIndex(2)
+
+
+    #----------------- PRINTING ----------------
+    def create_print_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        title = QLabel("Printing")
+        title.setObjectName("title")
+
+
+        input_layout = QHBoxLayout()
+        self.barcode = QLineEdit()
+        self.barcode.setPlaceholderText("Enter Barcode")
+        self.barcode.setMinimumWidth(200)
+        print_btn = QPushButton("Print")
+        input_layout.addWidget(self.barcode)
+        input_layout.addWidget(print_btn)
+        print_btn.clicked.connect(self.print_label)
+
+        content_layout = QHBoxLayout()
+        self.preview_area = QTextEdit()
+        self.preview_area.setReadOnly(True)
+        self.preview_area.setPlaceholderText("User details will appear here...")
+
+        self.previous_scan = QTextEdit()
+        self.previous_scan.setReadOnly(True)
+        self.previous_scan.setPlaceholderText("Previous Scans...")
+
+
+        layout.addWidget(title)
+        # layout.addWidget(self.barcode)
+        # layout.addWidget(print_btn)
+        content_layout.addWidget(self.preview_area, 1)
+        content_layout.addWidget(self.previous_scan, 1)
+        layout.addLayout(input_layout)
+        layout.addLayout(content_layout)
+        return page
+    
+
+    #----------------- PRINTING LOGIC ----------------
+    def print_label(self):
+        barcode = self.barcode.text().strip()
+        if not barcode:
+            QMessageBox.warning(self, "Input Error", "Please enter a barcode.")
+            return
+
+        # For demo, we just show the barcode in preview
+        self.preview_area.setText(f"Printing label for:\n{barcode}")
+
+        # Add to previous scans
+        current_text = self.previous_scan.toPlainText()
+        new_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {barcode}"
+        self.previous_scan.setText(current_text + new_entry + "\n")
+
+        # Clear input
+        self.barcode.clear()
 
     # ---------------- DASHBOARD ----------------
     def create_dashboard_page(self):
