@@ -1,13 +1,13 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStackedWidget, QLineEdit,
-    QTableWidget, QTableWidgetItem, QFrame, QMessageBox
+    QTableWidget, QTableWidgetItem, QFrame, QMessageBox, QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QHeaderView
-from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from PyQt6.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 from PyQt6.QtCore import QMarginsF
-from PyQt6.QtGui import QPageLayout, QPixmap
+from PyQt6.QtGui import QColor, QPageLayout, QPainter, QPixmap
 from datetime import datetime
 from PyQt6.QtGui import QTextDocument, QPageSize, QPageLayout
 from PyQt6.QtCore import QSizeF
@@ -102,21 +102,52 @@ class DifoPanel(QMainWindow):
         # print_btn.setAutoDefault(True)
 
         content_layout = QHBoxLayout()
-        self.preview_area = QTextEdit()
-        self.preview_area.setReadOnly(True)
-        self.preview_area.setPlaceholderText("User details will appear here...")
-        self.preview_area.setText("Barcode scans will appear here")
+        self.preview_area = QWidget()
+        preview_layout = QVBoxLayout(self.preview_area)
+        preview_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        preview_layout.setSpacing(15)
 
+        # Style (vertical decoration)
+        self.preview_area.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(
+                    x1:0, y1:0,
+                    x2:0, y2:1,
+                    stop:0 #f5f7fa,
+                    stop:1 #c3cfe2
+                );
+                border-radius: 15px;
+                border: 1px solid #bbb;
+            }
+        """)
+
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setXOffset(0)
+        shadow.setYOffset(5)
+        shadow.setColor(QColor(0,0,0,120))
+
+        self.preview_area.setGraphicsEffect(shadow)
+
+        # Text
+        self.preview_text = QLabel("Barcode scans will appear here")
+        self.preview_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Image
+        self.image_label = QLabel()
         pixmap = QPixmap("example.jpg")
 
         if not pixmap.isNull():
-            self.preview_area.setHtml("""
-                <div align="center">
-                    <p>Barcode scans will appear here</p>
-                    <img src="example.jpg" width="350" height="300" />
-                </div>
-            """)
-                
+            self.image_label.setPixmap(
+                pixmap.scaled(450, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
+            self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Add to layout
+        preview_layout.addWidget(self.preview_text)
+        preview_layout.addWidget(self.image_label)
+
+                    
 
         self.previous_scan = QTextEdit()
         self.previous_scan.setReadOnly(True)
@@ -124,11 +155,14 @@ class DifoPanel(QMainWindow):
        
 
 
-        layout.addWidget(title)
-        # layout.addWidget(self.barcode)
-        # layout.addWidget(print_btn)
+        # Add to content layout
         content_layout.addWidget(self.preview_area, 1)
         content_layout.addWidget(self.previous_scan, 1)
+
+        # =======================
+        # Add everything to main
+        # =======================
+        layout.addWidget(title)
         layout.addLayout(input_layout)
         layout.addLayout(content_layout)
         return page
@@ -142,7 +176,38 @@ class DifoPanel(QMainWindow):
             return
 
         # For demo, we just show the barcode in preview
-        self.preview_area.setText(f"Printing label for:\n{barcode}")
+        self.preview_text.setText(f"Printing label for:\n{barcode}")
+
+        #update preview image
+        pixmap = QPixmap("example.jpg")  # Replace with dynamic image generation if needed
+        if not pixmap.isNull():
+            self.image_label.setPixmap(
+                pixmap.scaled(450, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
+
+            # Directly print the image
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setFullPage(True)
+            painter = QPainter(printer)
+
+            # Correct usage: pass unit to pageRect
+            page_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
+
+            # make integer for drawPixmap
+            page_size = page_rect.size().toSize()
+
+            # Scale image to fit page
+            scaled_pixmap = pixmap.scaled(
+                page_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+
+            # Center image
+            x = (page_rect.width() - scaled_pixmap.width()) // 2
+            y = (page_rect.height() - scaled_pixmap.height()) // 2
+            painter.drawPixmap(int(x), int(y), scaled_pixmap)
+            painter.end()
 
         # Add to previous scans
         current_text = self.previous_scan.toPlainText()
