@@ -1,21 +1,14 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QStackedWidget, QLineEdit,
-    QTableWidget, QTableWidgetItem, QFrame, QMessageBox
+    QMainWindow,QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLabel
 )
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QHeaderView
-from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt6.QtCore import QMarginsF
-from PyQt6.QtGui import QPageLayout
-from datetime import datetime
-from PyQt6.QtGui import QTextDocument, QPageSize, QPageLayout
-from PyQt6.QtCore import QSizeF
-# import database
+from PyQt6.QtCore import Qt
 
 
 from fifo_inventory import FifoPanel
 from difo_inventory import DifoPanel
+from signin import SignInDialog
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -80,6 +73,8 @@ class MainWindow(QMainWindow):
         #self.close()  # optional
 
     def open_difo(self):
-        self.difo_window = DifoPanel()
-        self.difo_window.show()
-        #self.close()  # optional
+        sign_in = SignInDialog()
+        if sign_in.exec():  # Only open DIFO if login succeeded
+            self.difo_window = DifoPanel()
+            self.difo_window.show()
+            #self.close()  # optional
