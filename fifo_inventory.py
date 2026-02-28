@@ -306,14 +306,16 @@ class FifoPanel(QMainWindow):
         preview = QPrintPreviewDialog(printer, self)
         preview.setWindowTitle("Print Preview")
 
-        preview.paintRequested.connect(lambda printer: self.print_document(printer, item_code, item_name))
+        preview.paintRequested.connect(lambda printer: self.print_document(printer, item_code, item_name, item_qty, material, batch, pallet_box,
+                                po_number, shift, supplier, receive_date, expiry_date))
 
-        QTimer.singleShot(5000, preview.close)
+        #QTimer.singleShot(5000, preview.close)
 
         preview.exec()
 
     
-    def print_document(self, printer, item_code, item_name):
+    def print_document(self, printer, item_code, item_name, item_qty, material, batch, pallet_box,
+                                po_number, shift, supplier, receive_date, expiry_date):
        
         # ---- Create printer ----
         #printer = QPrinter(QPrinter.PrinterMode.HighResolution)
@@ -324,39 +326,131 @@ class FifoPanel(QMainWindow):
         document = QTextDocument()
 
         today = datetime.now().strftime("%d %B %Y")
-        invoice_no = datetime.now().strftime("%Y%m%d%H%M%S")
-
+        #invoice_no = datetime.now().strftime("%Y%m%d%H%M%S")
         html_content = f"""
-        <div style="font-family: Arial; font-size:2pt; padding:5px; width:75mm;">
-            <p style="text-align:center; margin:0.5pt;">INVOICE</p>
+        <html>
+        <head>
+        <style>
+            @page {{
+                size: 75mm 100mm;
+                margin: 0;
+            }}
 
-            <p style="margin:0.5pt 0;">
-                <b>Your Company</b><br>
-                123 Street<br>
-                City, Country
-            </p>
+            body {{
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+            }}
 
-            <table width="100%" style="margin:0.5pt 0;">
-                <tr>
-                    <td><b>Invoice No:</b> {invoice_no}</td>
-                    <td align="right"><b>Date:</b> {today}</td>
-                </tr>
-            </table>
+            .label {{
+                width: 75mm;
+                height: 100mm;
+                padding: 1mm;
+                box-sizing: border-box;
+                border: 1px solid black;
+                page-break-after: avoid;
+                overflow: hidden;
+                font-size: 2pt;
+            }}
 
-            <p style="margin:0.5pt 0;">Bill To:</p>
-            <p style="margin:0.5pt 0;">
-                <b>Item Code:</b> {item_code}<br>
-                <b>Item Name:</b> {item_name}
-            </p>
+            .center {{
+                text-align: center;
+            }}
 
-            <hr style="margin:0.5pt 0;">
-            <p style="text-align:center; margin:0.5pt 0;">Thank you for your business!</p>
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 1.8pt;
+            }}
+
+            td {{
+                padding: 0px;
+                vertical-align: top;
+            }}
+
+            hr {{
+                margin: 3px 0;
+            }}
+
+
+        </style>
+        </head>
+        <body>
+        <div class="label">
+
+            <!-- UPPER SECTION -->
+            <div class="upper_section">
+
+                <!-- LEFT: QR and Item Code -->
+                <table>
+                    <tr>
+
+                         <!-- LEFT -->
+                        <td width="20%" valign="top">
+                            <img src="qr.png" width="10" height="10"><br>
+                        </td>
+
+                        <!-- CENTER -->
+                        <td width="55%" align="center" valign="top">
+                            <b style="font-size:2.5pt;">Walton Hi-Tech Industries PLC</b><br>
+                            <span style="font-size:2pt;">
+                                Chandra, Kaliakoir, Gazipur
+                            </span><br><br><br>
+
+                            <span style="font-size:1.8pt;border:1px solid black;padding:2px;">
+                                <b>498379674936934769456794769546</b>
+                            </span>
+                            <br><br><br>
+                        </td>
+
+                        <!-- RIGHT -->
+                        <td width="25%" align="right" valign="top">
+                            <span style="font-size:1.5pt;">{today}</span><br>
+                            <img src="qr.png" width="12" height="12">
+                        </td>
+                    </tr>
+                </table>
+
+            </div>
+
+            <!-- LOWER SECTION: Item Details Table -->
+            <div class="lower_section">
+                <table>
+                    <tr style="font-size:1.8pt;">
+                        <td width="40%" valign="top" style="text-align: left;font-size:2px">
+                            <b style="margin-top: 1pt;">Item Code</b>: {item_code} <br><br>
+                            <b style="margin-top: 1pt;">Item Name:</b>{item_name} <br><br>
+                            <b style="margin-top: 1pt;">Item Qty:</b>{item_qty} PCS <br><br>
+                            <b style="margin-top: 1pt;">Expiry Date:</b>{expiry_date} <br><br>
+                            <b style="margin-top: 1pt;">Received Date:</b>{receive_date} <br><br>
+                            <b style="margin-top: 1pt;">Pallet/Box:</b>{pallet_box} <br><br>
+                        </td>
+
+                        <!-- CENTER -->
+                        <td width="40%" align="center" valign="top" style="text-align: left;font-size:2px">
+                            <b style="margin-top: 1pt;text-align: left;">Material:</b>{material} <br><br>
+                            <b style="margin-top: 1pt;text-align: left;">Shift:</b>{shift} <br><br>
+                            <b style="margin-top: 1pt;text-align: left;" >Batch No:</b>{batch} <br><br>
+                            <b style="margin-top: 1pt;text-align: left;">Supplier:</b>{supplier} <br><br>
+                        </td>
+
+                        <td width="20%" align="right" valign="top" style="text-align: left;font-size:2px">
+                            <b style="margin-top: 1pt;text-align: left;">iQC Status</b> <br><br>
+                            <b style="margin-top: 1pt;text-align: left;">Pass</b> <br><br>
+                            <b style="margin-top: 1pt;text-align: left;">Fail</b> <br><br>
+                        </td> 
+
+                    </tr>
+                </table>
+            </div>
         </div>
+        </body>
+        </html>
         """
 
         document.setHtml(html_content)
 
-        # ✅ Correct Qt6 single-page label sizing
+        # Correct Qt6 single-page label sizing
         page_rect = printer.pageLayout().paintRect(QPageLayout.Unit.Millimeter)
         document.setPageSize(QSizeF(page_rect.width(), page_rect.height()))
 
