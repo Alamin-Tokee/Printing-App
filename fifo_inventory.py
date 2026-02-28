@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStackedWidget, QLineEdit,
-    QTableWidget, QTableWidgetItem, QFrame, QMessageBox
+    QTableWidget, QTableWidgetItem, QFrame, QMessageBox, QDateEdit, QGridLayout
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QDate
 from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt6.QtCore import QMarginsF
@@ -95,77 +95,143 @@ class FifoPanel(QMainWindow):
         users = database.get_users()
         self.user_count_label.setText(f"Total Users: {len(users)}")
 
-    # ---------------- USERS ----------------
+        # ---------------- USERS ----------------
     def create_users_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        input_layout = QHBoxLayout()
 
-        self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("Name")
-        self.name_input.setMinimumWidth(200)
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(10)
 
-        self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("Email")
-        self.email_input.setMinimumWidth(200)
+        # ----------- INPUT FIELDS -----------
+
+        self.item_code_input = QLineEdit()
+        self.item_code_input.setPlaceholderText("Item Code")
+
+        self.item_name_input = QLineEdit()
+        self.item_name_input.setPlaceholderText("Item Name")
+
+        self.item_qty_input = QLineEdit()
+        self.item_qty_input.setPlaceholderText("Item Quantity")
 
         self.material_input = QLineEdit()
         self.material_input.setPlaceholderText("Material Type")
 
-        self.bath_input = QLineEdit()
-        self.bath_input.setPlaceholderText("Bath Number")
+        self.batch_input = QLineEdit()
+        self.batch_input.setPlaceholderText("Batch Number")
+
+        self.pallet_box_input = QLineEdit()
+        self.pallet_box_input.setPlaceholderText("Pallet Box Number")
 
         self.po_input = QLineEdit()
         self.po_input.setPlaceholderText("PO Number")
 
+        self.shift_input = QLineEdit()
+        self.shift_input.setPlaceholderText("Shift")
 
-        input_layout.addWidget(self.name_input)
-        input_layout.addWidget(self.email_input) 
-        input_layout.addWidget(self.material_input)
-        input_layout.addWidget(self.bath_input)
-        input_layout.addWidget(self.po_input)
+        self.supplier_input = QLineEdit()
+        self.supplier_input.setPlaceholderText("Supplier Name")
+
+        self.receive_date = QDateEdit()
+        self.receive_date.setDate(QDate.currentDate())
+        self.receive_date.setCalendarPopup(True)
+        self.receive_date.setDisplayFormat("dd-MM-yyyy")
+        self.receive_date.setMinimumHeight(38)
+
+        self.expiry_date = QDateEdit()
+        self.expiry_date.setDate(QDate.currentDate())
+        self.expiry_date.setCalendarPopup(True)
+        self.expiry_date.setDisplayFormat("dd-MM-yyyy")
+        self.expiry_date.setMinimumHeight(38)
+
+        # ----------- FIELD DEFINITIONS -----------
+
+        row1_fields = [
+            ("Item Code", self.item_code_input),
+            ("Item Name", self.item_name_input),
+            ("Item Quantity", self.item_qty_input),
+            ("Material Type", self.material_input),
+            ("Batch Number", self.batch_input),
+            ("Pallet Box Number", self.pallet_box_input),
+        ]
+
+        row2_fields = [
+            ("PO Number", self.po_input),
+            ("Shift Number", self.shift_input),
+            ("Supplier Name", self.supplier_input),
+            ("Receive Date", self.receive_date),
+            ("Expiry Date", self.expiry_date),
+        ]
+
+        # ----------- ADD ROW 1 -----------
+
+        for col, (label_text, widget) in enumerate(row1_fields):
+            label = QLabel(label_text)
+            label.setStyleSheet("color: white;")
+            grid_layout.addWidget(label, 0, col)
+            grid_layout.addWidget(widget, 1, col)
+
+        # ----------- ADD ROW 2 -----------
+
+        for col, (label_text, widget) in enumerate(row2_fields):
+            label = QLabel(label_text)
+            label.setStyleSheet("color: white;")
+            grid_layout.addWidget(label, 2, col)
+            grid_layout.addWidget(widget, 3, col)
+
+        # Equal column stretch
+        for i in range(6):
+            grid_layout.setColumnStretch(i, 1)
+
+        # ----------- BUTTONS -----------
 
         add_btn = QPushButton("Add User")
-        delete_btn = QPushButton("Delete Selected")
+        add_btn.setFixedWidth(150)   # limited width
+        #delete_btn = QPushButton("Delete Selected")
+        #delete_btn.setFixedWidth(150)
 
         add_btn.clicked.connect(self.add_user)
-        delete_btn.clicked.connect(self.delete_user)
+        #delete_btn.clicked.connect(self.delete_user)
 
+        # Button layout (left aligned)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()   # pushes buttons to right
+        button_layout.addWidget(add_btn)
+        #button_layout.addWidget(delete_btn)
 
-        # -------- HORIZONTAL SPLIT AREA --------
-        # content_layout = QHBoxLayout()
+        # ----------- TABLE -----------
 
-        # # LEFT SIDE (Print / Data View)
-        # self.preview_area = QTextEdit()
-        # self.preview_area.setReadOnly(True)
-        # self.preview_area.setPlaceholderText("User details will appear here...")
-        
-
-        # RIGHT SIDE (Table)
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["ID", "Name", "Email"])
+        self.table.setColumnCount(12)  # 11 fields + ID
+        self.table.setHorizontalHeaderLabels([
+            "ID",
+            "Item Code",
+            "Item Name",
+            "Quantity",
+            "Material",
+            "Batch",
+            "Pallet Box",
+            "PO Number",
+            "Shift",
+            "Supplier",
+            "Receive Date",
+            "Expiry Date"
+        ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
 
-
-         # Add both sides
-        # content_layout.addWidget(self.preview_area, 1)  # left stretch
-        # content_layout.addWidget(self.table, 2)         # right stretch bigger
-
+        # ----------- MAIN LAYOUT -----------
 
         side_title = QLabel("Manage Users")
-        side_title.setObjectName("side_title")
+        side_title.setStyleSheet("font-size: 20px; font-weight: bold;color: white;")
+
         layout.addWidget(side_title)
-        # layout.addWidget(self.name_input)
-        # layout.addWidget(self.email_input)
-        layout.addLayout(input_layout)
-        layout.addWidget(add_btn)
-        layout.addWidget(delete_btn)
-        #layout.addLayout(content_layout)
+        layout.addLayout(grid_layout)
+        layout.addLayout(button_layout)   # buttons left aligned
         layout.addWidget(self.table)
 
         self.load_users()
+
         return page
 
     def load_users(self):
@@ -179,23 +245,58 @@ class FifoPanel(QMainWindow):
         self.update_dashboard_stats()
 
     def add_user(self):
-        name = self.name_input.text().strip()
-        email = self.email_input.text().strip()
+        # ---------- GET VALUES FROM INPUTS ----------
+        item_code = self.item_code_input.text().strip()
+        item_name = self.item_name_input.text().strip()
+        item_qty = self.item_qty_input.text().strip()
+        material = self.material_input.text().strip()
+        batch = self.batch_input.text().strip()
+        pallet_box = self.pallet_box_input.text().strip()
+        po_number = self.po_input.text().strip()
+        shift = self.shift_input.text().strip()
+        supplier = self.supplier_input.text().strip()
+        receive_date = self.receive_date.date().toString("yyyy-MM-dd")
+        expiry_date = self.expiry_date.date().toString("yyyy-MM-dd")
 
-        if not name or not email:
-            QMessageBox.warning(self, "Input Error", "All fields are required.")
+        # ---------- VALIDATION ----------
+        required_fields = [item_code, item_name, item_qty]
+        if not all(required_fields):
+            QMessageBox.warning(self, "Input Error", "Item Code, Item Name and Quantity are required.")
             return
 
-        database.add_user(name, email)
-        self.name_input.clear()
-        self.email_input.clear()
+        if not item_qty.isdigit():
+            QMessageBox.warning(self, "Input Error", "Item Quantity must be a number.")
+            return
+
+        # ---------- INSERT INTO DATABASE ----------
+        database.add_user(
+            item_code, item_name, item_qty, material, batch,
+            pallet_box, po_number, shift, supplier,
+            receive_date, expiry_date
+        )
+
+        # ---------- CLEAR INPUTS ----------
+        self.item_code_input.clear()
+        self.item_name_input.clear()
+        self.item_qty_input.clear()
+        self.material_input.clear()
+        self.batch_input.clear()
+        self.pallet_box_input.clear()
+        self.po_input.clear()
+        self.shift_input.clear()
+        self.supplier_input.clear()
+        self.receive_date.setDate(QDate.currentDate())
+        self.expiry_date.setDate(QDate.currentDate())
+
+        # ---------- REFRESH TABLE ----------
         self.load_users()
 
-        # Open print preview popup
-        self.open_print_preview(name, email)
+        # ---------- OPTIONAL: Print Preview ----------
+        self.open_print_preview(item_code, item_name, item_qty, material, batch, pallet_box,
+                                po_number, shift, supplier, receive_date, expiry_date)
 
-
-    def open_print_preview(self, name, email):
+    def open_print_preview(self, item_code, item_name, item_qty, material, batch, pallet_box,
+                                po_number, shift, supplier, receive_date, expiry_date):
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         # Correct PyQt6 margins
         label_size = QSizeF(100, 78)  # mm
@@ -205,14 +306,14 @@ class FifoPanel(QMainWindow):
         preview = QPrintPreviewDialog(printer, self)
         preview.setWindowTitle("Print Preview")
 
-        preview.paintRequested.connect(lambda printer: self.print_document(printer, name, email))
+        preview.paintRequested.connect(lambda printer: self.print_document(printer, item_code, item_name))
 
         QTimer.singleShot(5000, preview.close)
 
         preview.exec()
 
     
-    def print_document(self, printer, name, email):
+    def print_document(self, printer, item_code, item_name):
        
         # ---- Create printer ----
         #printer = QPrinter(QPrinter.PrinterMode.HighResolution)
@@ -244,8 +345,8 @@ class FifoPanel(QMainWindow):
 
             <p style="margin:0.5pt 0;">Bill To:</p>
             <p style="margin:0.5pt 0;">
-                <b>Name:</b> {name}<br>
-                <b>Email:</b> {email}
+                <b>Item Code:</b> {item_code}<br>
+                <b>Item Name:</b> {item_name}
             </p>
 
             <hr style="margin:0.5pt 0;">
