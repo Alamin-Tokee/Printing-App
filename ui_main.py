@@ -73,8 +73,8 @@ class MainWindow(QMainWindow):
         #self.close()  # optional
 
     def open_difo(self):
-        sign_in = SignInDialog()
-        if sign_in.exec():  # Only open DIFO if login succeeded
-            self.difo_window = DifoPanel()
-            self.difo_window.show()
+        #sign_in = SignInDialog()
+        #if sign_in.exec():  # Only open DIFO if login succeeded
+        self.difo_window = DifoPanel()
+        self.difo_window.show()
             #self.close()  # optional

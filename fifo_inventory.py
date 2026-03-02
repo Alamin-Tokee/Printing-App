@@ -1,3 +1,5 @@
+import os
+
 from PyQt6.QtWidgets import (
     QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStackedWidget, QLineEdit,
@@ -6,8 +8,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer, QDate
 from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt6.QtCore import QMarginsF
-from PyQt6.QtGui import QPageLayout
+from PyQt6.QtCore import QMarginsF, QRectF
+from PyQt6.QtGui import QPageLayout, QPainter, QPen, QFont, QPixmap, QTextOption
 from datetime import datetime
 from PyQt6.QtGui import QTextDocument, QPageSize, QPageLayout
 from PyQt6.QtCore import QSizeF
@@ -301,8 +303,9 @@ class FifoPanel(QMainWindow):
         # Correct PyQt6 margins
         label_size = QSizeF(100, 78)  # mm
         printer.setPageSize(QPageSize(label_size, QPageSize.Unit.Millimeter))
+        printer.setResolution(300)  
         # Set small margins
-        printer.setPageMargins(QMarginsF(2, 2, 2, 2), QPageLayout.Unit.Millimeter)
+        printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout.Unit.Millimeter)
         preview = QPrintPreviewDialog(printer, self)
         preview.setWindowTitle("Print Preview")
 
@@ -313,149 +316,271 @@ class FifoPanel(QMainWindow):
 
         preview.exec()
 
-    
+
     def print_document(self, printer, item_code, item_name, item_qty, material, batch, pallet_box,
                                 po_number, shift, supplier, receive_date, expiry_date):
-       
-        # ---- Create printer ----
-        #printer = QPrinter(QPrinter.PrinterMode.HighResolution)
 
-        # Set custom page size: 78mm x 100mm
     
-        # ---- Create document ----
-        document = QTextDocument()
+        # -----------------------------
+        # Configure Printer
+        # -----------------------------
+        printer.setResolution(300)  # 300 DPI, adjust if needed
+        # printer.setPageSizeMM(QSizeF(78, 100))
+        # printer.setFullPage(True)
+        # printer.setPageMargins(QMarginsF(0, 0, 0, 0))
 
+        painter = QPainter(printer)
+        dpi = printer.resolution()
+
+        # Convert mm to pixels
+        def mm(val):
+            return val * dpi / 25.4
+
+        width = mm(100)
+        height = mm(78)
+
+        # -----------------------------
+        # Draw Border
+        # -----------------------------
+        #painter.setPen(QPen(Qt.GlobalColor.black, 2))
+        #painter.drawRect(QRectF(0, 0, width, height))
+
+        # -----------------------------
+        # Header Section
+        # -----------------------------
         today = datetime.now().strftime("%d %B %Y")
-        #invoice_no = datetime.now().strftime("%Y%m%d%H%M%S")
-        html_content = f"""
-        <html>
-        <head>
-        <style>
-            @page {{
-                size: 75mm 100mm;
-                margin: 0;
-            }}
 
-            body {{
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-            }}
+        painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        option_center = QTextOption()
+        option_center.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        painter.drawText(QRectF(0, mm(4), width, mm(8)), "Walton Hi-Tech Industries PLC", option_center)
 
-            .label {{
-                width: 75mm;
-                height: 100mm;
-                padding: 1mm;
-                box-sizing: border-box;
-                border: 1px solid black;
-                page-break-after: avoid;
-                overflow: hidden;
-                font-size: 2pt;
-            }}
+        painter.setFont(QFont("Arial", 7))
+        painter.drawText(QRectF(0, mm(12), width, mm(6)), "Chandra, Kaliakoir, Gazipur", option_center)
 
-            .center {{
-                text-align: center;
-            }}
+        # Draw date on top-right
+        option_right = QTextOption()
+        option_right.setAlignment(Qt.AlignmentFlag.AlignRight)
+        painter.drawText(QRectF(mm(56), mm(6), mm(28), mm(6)), today, option_right)
 
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 1.8pt;
-            }}
+        # -----------------------------
+        # QR Codes
+        # -----------------------------
+        qr_path = os.path.join(os.path.dirname(__file__), "qr.png")
+        qr = QPixmap(qr_path)
+        #print(f"Looking for QR code at: {qr_path}")
+        if qr.isNull():
+            print("QR image not loaded!")
+        else:
+            painter.drawPixmap(int(mm(2)), int(mm(2)), int(mm(4)), int(mm(4)), qr)
 
-            td {{
-                padding: 0px;
-                vertical-align: top;
-            }}
+        # -----------------------------
+        # Big Code Box
+        # -----------------------------
+        #painter.drawRect(QRectF(mm(20), mm(22), mm(35), mm(10)))
+        painter.setFont(QFont("Arial", 8, QFont.Weight.Bold))
+        painter.drawText(QRectF(mm(20), mm(22), mm(35), mm(10)),"4936934769456794769546", option_center)
 
-            hr {{
-                margin: 3px 0;
-            }}
+        # -----------------------------
+        # Item Details (2 columns)
+        # -----------------------------
+        painter.setFont(QFont("Arial", 8))
+
+        y = mm(40)
+        line_gap = mm(6)
+
+        label_x = mm(5)
+        colon_x = mm(32)
+        value_x = mm(36)
+        label_width = mm(27)
+        colon_width = mm(4)
+        value_width = mm(38)
+
+        details = [
+            ("Item Code", item_code),
+            ("Item Name", item_name),
+            ("Item Qty", f"{item_qty} PCS"),
+            ("Expiry Date", expiry_date),
+            ("Received Date", receive_date),
+            ("PO Number", po_number),
+            ("Material", material),
+            ("Pallet/Box", pallet_box),
+            ("Shift", shift),
+            ("Batch No", batch),
+            ("Supplier", supplier),
+        ]
+
+        option_left = QTextOption()
+        option_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        for label, value in details:
+            # Left label
+            painter.drawText(QRectF(label_x, y, label_width, line_gap), label, option_left)
+            # Colon
+            painter.drawText(QRectF(colon_x, y, colon_width, line_gap), ":", option_left)
+            # Value
+            painter.drawText(QRectF(value_x, y, value_width, line_gap), str(value), option_left)
+            y += line_gap
+
+        # -----------------------------
+        # IQC Section
+        # -----------------------------
+        painter.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        painter.drawText(QRectF(mm(50), mm(80), mm(28), mm(6)), "IQC Status", option_left)
+
+        painter.setFont(QFont("Arial", 8))
+        painter.drawText(QRectF(mm(50), mm(88), mm(28), mm(6)), "Pass", option_left)
+        painter.drawText(QRectF(mm(50), mm(94), mm(28), mm(6)), "Fail", option_left)
+
+        # -----------------------------
+        # Finish
+        # -----------------------------
+        painter.end()
+
+    
+    # def print_document(self, printer, item_code, item_name, item_qty, material, batch, pallet_box,
+    #                             po_number, shift, supplier, receive_date, expiry_date):
+       
+    #     # ---- Create printer ----
+    #     #printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+
+    #     # Set custom page size: 78mm x 100mm
+    
+    #     # ---- Create document ----
+    #     document = QTextDocument()
+
+    #     today = datetime.now().strftime("%d %B %Y")
+    #     #invoice_no = datetime.now().strftime("%Y%m%d%H%M%S")
+    #     html_content = f"""
+    #     <html>
+    #     <head>
+    #     <style>
+    #         @page {{
+    #             size: 75mm 100mm;
+    #             margin: 0;
+    #         }}
+
+    #         body {{
+    #             margin: 0;
+    #             padding: 0;
+    #             font-family: Arial, sans-serif;
+    #         }}
+
+    #         .label {{
+    #             width: 75mm;
+    #             height: 100mm;
+    #             padding: 1mm;
+    #             box-sizing: border-box;
+    #             border: 1px solid black;
+    #             page-break-after: avoid;
+    #             overflow: hidden;
+    #             font-size: 2pt;
+    #         }}
+
+    #         .center {{
+    #             text-align: center;
+    #         }}
+
+    #         table {{
+    #             width: 100%;
+    #             border-collapse: collapse;
+                
+    #         }}
+
+    #         td {{
+    #             padding: 0px;
+    #             vertical-align: top;
+    #         }}
+
+    #         hr {{
+    #             margin: 3px 0;
+    #         }}
 
 
-        </style>
-        </head>
-        <body>
-        <div class="label">
+    #     </style>
+    #     </head>
+    #     <body>
+    #     <div class="label">
 
-            <!-- UPPER SECTION -->
-            <div class="upper_section">
+    #         <!-- UPPER SECTION -->
+    #         <div class="upper_section">
 
-                <!-- LEFT: QR and Item Code -->
-                <table>
-                    <tr>
+    #             <!-- LEFT: QR and Item Code -->
+    #             <table>
+    #                 <tr>
 
-                         <!-- LEFT -->
-                        <td width="20%" valign="top">
-                            <img src="qr.png" width="10" height="10"><br>
-                        </td>
+    #                      <!-- LEFT -->
+    #                     <td width="20%" valign="top">
+    #                         <img src="qr.png" width="10" height="10"><br>
+    #                     </td>
 
-                        <!-- CENTER -->
-                        <td width="55%" align="center" valign="top">
-                            <b style="font-size:2.5pt;">Walton Hi-Tech Industries PLC</b><br>
-                            <span style="font-size:2pt;">
-                                Chandra, Kaliakoir, Gazipur
-                            </span><br><br><br>
+    #                     <!-- CENTER -->
+    #                     <td width="55%" align="center" valign="top">
+    #                         <b style="font-size:2.5pt;">Walton Hi-Tech Industries PLC</b><br>
+    #                         <span style="font-size:2pt;">
+    #                             Chandra, Kaliakoir, Gazipur
+    #                         </span><br><br>
 
-                            <span style="font-size:1.8pt;border:1px solid black;padding:2px;">
-                                <b>498379674936934769456794769546</b>
-                            </span>
-                            <br><br><br>
-                        </td>
+    #                         <span style="font-size:1.5pt;border:1px solid black;padding:1px;">
+    #                             <b>9674936934769456794769546</b>
+    #                         </span>
+    #                         <br><br>
+    #                     </td>
 
-                        <!-- RIGHT -->
-                        <td width="25%" align="right" valign="top">
-                            <span style="font-size:1.5pt;">{today}</span><br>
-                            <img src="qr.png" width="12" height="12">
-                        </td>
-                    </tr>
-                </table>
+    #                     <!-- RIGHT -->
+    #                     <td width="25%" align="right" valign="top">
+    #                         <span style="font-size:1.5pt;">{today}</span><br>
+    #                         <img src="qr.png" width="12" height="12">
+    #                     </td>
+    #                 </tr>
+    #             </table>
 
-            </div>
+    #         </div>
 
-            <!-- LOWER SECTION: Item Details Table -->
-            <div class="lower_section">
-                <table>
-                    <tr style="font-size:1.8pt;">
-                        <td width="40%" valign="top" style="text-align: left;font-size:2px">
-                            <b style="margin-top: 1pt;">Item Code</b>: {item_code} <br><br>
-                            <b style="margin-top: 1pt;">Item Name:</b>{item_name} <br><br>
-                            <b style="margin-top: 1pt;">Item Qty:</b>{item_qty} PCS <br><br>
-                            <b style="margin-top: 1pt;">Expiry Date:</b>{expiry_date} <br><br>
-                            <b style="margin-top: 1pt;">Received Date:</b>{receive_date} <br><br>
-                            <b style="margin-top: 1pt;">Pallet/Box:</b>{pallet_box} <br><br>
-                        </td>
+    #         <!-- LOWER SECTION: Item Details Table -->
+    #         <div class="lower_section">
+    #             <table>
+    #                 <tr style="font-size:2pt;">
+    #                     <td width="40%" valign="top" style="text-align: left;">
+    #                         <b style="margin-top: 1pt;">Item Code &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>: {item_code} <br><br>
+    #                         <b style="margin-top: 1pt;">Item Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</b> {item_name} <br><br>
+    #                         <b style="margin-top: 1pt;">Item Qty &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</b>{item_qty} PCS <br><br>
+    #                         <b style="margin-top: 1pt;">Expiry Date &nbsp;&nbsp;&nbsp;:</b>{expiry_date} <br><br>
+    #                         <b style="margin-top: 1pt;">Received Date:</b>{receive_date} <br><br>
+    #                         <b style="margin-top: 1pt;">PO Number &nbsp;&nbsp;&nbsp;:</b>{po_number} <br><br>
+    #                     </td>
 
-                        <!-- CENTER -->
-                        <td width="40%" align="center" valign="top" style="text-align: left;font-size:2px">
-                            <b style="margin-top: 1pt;text-align: left;">Material:</b>{material} <br><br>
-                            <b style="margin-top: 1pt;text-align: left;">Shift:</b>{shift} <br><br>
-                            <b style="margin-top: 1pt;text-align: left;" >Batch No:</b>{batch} <br><br>
-                            <b style="margin-top: 1pt;text-align: left;">Supplier:</b>{supplier} <br><br>
-                        </td>
+    #                     <!-- CENTER -->
+    #                     <td width="40%" align="center" valign="top" style="text-align: left;">
+    #                         <b style="margin-top: 1pt;text-align: left;">Material:</b>{material} <br><br>
+    #                         <b style="margin-top: 1pt;">Pallet/Box:</b>{pallet_box} <br><br>
+    #                         <b style="margin-top: 1pt;text-align: left;">Shift:</b>{shift} <br><br>
+    #                         <b style="margin-top: 1pt;text-align: left;" >Batch No:</b>{batch} <br><br>
+    #                         <b style="margin-top: 1pt;text-align: left;">Supplier:</b>{supplier} <br><br>
+    #                     </td>
 
-                        <td width="20%" align="right" valign="top" style="text-align: left;font-size:2px">
-                            <b style="margin-top: 1pt;text-align: left;">iQC Status</b> <br><br>
-                            <b style="margin-top: 1pt;text-align: left;">Pass</b> <br><br>
-                            <b style="margin-top: 1pt;text-align: left;">Fail</b> <br><br>
-                        </td> 
+    #                     <td width="20%" align="right" valign="top" style="text-align: left;">
+    #                         <b style="margin-top: 1pt;text-align: left;">IQC Status</b> <br><br>
+    #                         <b style="margin-top: 1pt;text-align: left;">Pass</b> <br><br>
+    #                         <b style="margin-top: 1pt;text-align: left;">Fail</b> <br><br>
+    #                     </td> 
 
-                    </tr>
-                </table>
-            </div>
-        </div>
-        </body>
-        </html>
-        """
+    #                 </tr>
+    #             </table>
+    #         </div>
+    #     </div>
+    #     </body>
+    #     </html>
+    #     """
 
-        document.setHtml(html_content)
+    #     document.setHtml(html_content)
 
-        # Correct Qt6 single-page label sizing
-        page_rect = printer.pageLayout().paintRect(QPageLayout.Unit.Millimeter)
-        document.setPageSize(QSizeF(page_rect.width(), page_rect.height()))
+    #     # Correct Qt6 single-page label sizing
+    #     page_rect = printer.pageLayout().paintRect(QPageLayout.Unit.Millimeter)
+    #     document.setPageSize(QSizeF(page_rect.width(), page_rect.height()))
 
-        # ---- Print / Preview ----
-        document.print(printer)
+    #     # ---- Print / Preview ----
+    #     document.print(printer)
 
 
     def delete_user(self):
