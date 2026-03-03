@@ -303,7 +303,8 @@ class FifoPanel(QMainWindow):
         # Correct PyQt6 margins
         label_size = QSizeF(100, 78)  # mm
         printer.setPageSize(QPageSize(label_size, QPageSize.Unit.Millimeter))
-        printer.setResolution(300)  
+        printer.setResolution(300) 
+        printer.setFullPage(True) 
         # Set small margins
         printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout.Unit.Millimeter)
         preview = QPrintPreviewDialog(printer, self)
@@ -324,7 +325,7 @@ class FifoPanel(QMainWindow):
         # -----------------------------
         # Configure Printer
         # -----------------------------
-        printer.setResolution(300)  # 300 DPI, adjust if needed
+        # printer.setResolution(300)  # 300 DPI, adjust if needed
         # printer.setPageSizeMM(QSizeF(78, 100))
         # printer.setFullPage(True)
         # printer.setPageMargins(QMarginsF(0, 0, 0, 0))
@@ -353,15 +354,15 @@ class FifoPanel(QMainWindow):
         painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         option_center = QTextOption()
         option_center.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        painter.drawText(QRectF(0, mm(4), width, mm(8)), "Walton Hi-Tech Industries PLC", option_center)
+        painter.drawText(QRectF(mm(-2), mm(2), width, mm(8)), "Walton Hi-Tech Industries PLC", option_center)
 
-        painter.setFont(QFont("Arial", 7))
-        painter.drawText(QRectF(0, mm(12), width, mm(6)), "Chandra, Kaliakoir, Gazipur", option_center)
+        painter.setFont(QFont("Arial", 8))
+        painter.drawText(QRectF(mm(-2), mm(8), width, mm(6)), "Chandra, Kaliakoir, Gazipur", option_center)
 
         # Draw date on top-right
         option_right = QTextOption()
         option_right.setAlignment(Qt.AlignmentFlag.AlignRight)
-        painter.drawText(QRectF(mm(56), mm(6), mm(28), mm(6)), today, option_right)
+        painter.drawText(QRectF(mm(70), mm(6), mm(28), mm(6)), today, option_right)
 
         # -----------------------------
         # QR Codes
@@ -372,37 +373,63 @@ class FifoPanel(QMainWindow):
         if qr.isNull():
             print("QR image not loaded!")
         else:
-            painter.drawPixmap(int(mm(2)), int(mm(2)), int(mm(4)), int(mm(4)), qr)
+            painter.drawPixmap(int(mm(2)), int(mm(2)), int(mm(12)), int(mm(12)), qr)
 
         # -----------------------------
         # Big Code Box
         # -----------------------------
         #painter.drawRect(QRectF(mm(20), mm(22), mm(35), mm(10)))
-        painter.setFont(QFont("Arial", 8, QFont.Weight.Bold))
-        painter.drawText(QRectF(mm(20), mm(22), mm(35), mm(10)),"4936934769456794769546", option_center)
+        painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        painter.drawText(QRectF(mm(30), mm(15), mm(35), mm(10)),"4936934769456794769546", option_center)
+
+
+        if qr.isNull():
+            print("QR image not loaded!")
+        else:
+            painter.drawPixmap(int(mm(82)), int(mm(12)), int(mm(14)), int(mm(14)), qr)
 
         # -----------------------------
-        # Item Details (2 columns)
+        # Columns Start Position
         # -----------------------------
-        painter.setFont(QFont("Arial", 8))
-
-        y = mm(40)
+        start_y = mm(32)
         line_gap = mm(6)
 
-        label_x = mm(5)
-        colon_x = mm(32)
-        value_x = mm(36)
-        label_width = mm(27)
-        colon_width = mm(4)
-        value_width = mm(38)
+        painter.setFont(QFont("Arial", 8))
 
-        details = [
+        # -----------------------------
+        # LEFT COLUMN
+        # -----------------------------
+        left_details = [
             ("Item Code", item_code),
             ("Item Name", item_name),
             ("Item Qty", f"{item_qty} PCS"),
             ("Expiry Date", expiry_date),
             ("Received Date", receive_date),
             ("PO Number", po_number),
+        ]
+
+        y_left = start_y
+
+        for label, value in left_details:
+            painter.drawText(QRectF(mm(5), y_left, mm(22), line_gap),
+                            Qt.AlignmentFlag.AlignLeft,
+                            label)
+
+            painter.drawText(QRectF(mm(24), y_left, mm(3), line_gap),
+                            Qt.AlignmentFlag.AlignLeft,
+                            ":")
+
+            painter.drawText(QRectF(mm(28), y_left, mm(30), line_gap),
+                            Qt.AlignmentFlag.AlignLeft,
+                            str(value))
+
+            y_left += line_gap
+
+
+        # -----------------------------
+        # MIDDLE COLUMN
+        # -----------------------------
+        middle_details = [
             ("Material", material),
             ("Pallet/Box", pallet_box),
             ("Shift", shift),
@@ -410,27 +437,41 @@ class FifoPanel(QMainWindow):
             ("Supplier", supplier),
         ]
 
-        option_left = QTextOption()
-        option_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        y_mid = start_y
 
-        for label, value in details:
-            # Left label
-            painter.drawText(QRectF(label_x, y, label_width, line_gap), label, option_left)
-            # Colon
-            painter.drawText(QRectF(colon_x, y, colon_width, line_gap), ":", option_left)
-            # Value
-            painter.drawText(QRectF(value_x, y, value_width, line_gap), str(value), option_left)
-            y += line_gap
+        for label, value in middle_details:
+            painter.drawText(QRectF(mm(47), y_mid, mm(20), line_gap),
+                            Qt.AlignmentFlag.AlignLeft,
+                            label)
+
+            painter.drawText(QRectF(mm(64), y_mid, mm(3), line_gap),
+                            Qt.AlignmentFlag.AlignLeft,
+                            ":")
+
+            painter.drawText(QRectF(mm(68), y_mid, mm(20), line_gap),
+                            Qt.AlignmentFlag.AlignLeft,
+                            str(value))
+
+            y_mid += line_gap
 
         # -----------------------------
-        # IQC Section
+        # RIGHT COLUMN (IQC)
         # -----------------------------
-        painter.setFont(QFont("Arial", 9, QFont.Weight.Bold))
-        painter.drawText(QRectF(mm(50), mm(80), mm(28), mm(6)), "IQC Status", option_left)
+        y_right = start_y
+
+        painter.setFont(QFont("Arial", 8, QFont.Weight.Bold))
+        painter.drawText(QRectF(mm(79), y_right , mm(20), mm(6)),
+                        Qt.AlignmentFlag.AlignLeft,
+                        "IQC Status")
 
         painter.setFont(QFont("Arial", 8))
-        painter.drawText(QRectF(mm(50), mm(88), mm(28), mm(6)), "Pass", option_left)
-        painter.drawText(QRectF(mm(50), mm(94), mm(28), mm(6)), "Fail", option_left)
+        painter.drawText(QRectF(mm(79), y_right + mm(8), mm(20), mm(6)),
+                        Qt.AlignmentFlag.AlignLeft,
+                        "Pass")
+
+        painter.drawText(QRectF(mm(79), y_right + mm(16), mm(20), mm(6)),
+                        Qt.AlignmentFlag.AlignLeft,
+                        "Fail")
 
         # -----------------------------
         # Finish
@@ -456,7 +497,7 @@ class FifoPanel(QMainWindow):
     #     <head>
     #     <style>
     #         @page {{
-    #             size: 75mm 100mm;
+    #             size: 100mm 78mm;
     #             margin: 0;
     #         }}
 
@@ -474,7 +515,7 @@ class FifoPanel(QMainWindow):
     #             border: 1px solid black;
     #             page-break-after: avoid;
     #             overflow: hidden;
-    #             font-size: 2pt;
+    #             font-size: 1pt;
     #         }}
 
     #         .center {{
@@ -516,7 +557,7 @@ class FifoPanel(QMainWindow):
 
     #                     <!-- CENTER -->
     #                     <td width="55%" align="center" valign="top">
-    #                         <b style="font-size:2.5pt;">Walton Hi-Tech Industries PLC</b><br>
+    #                         <b style="font-size:1pt;">Walton Hi-Tech Industries PLC</b><br>
     #                         <span style="font-size:2pt;">
     #                             Chandra, Kaliakoir, Gazipur
     #                         </span><br><br>
@@ -542,27 +583,27 @@ class FifoPanel(QMainWindow):
     #             <table>
     #                 <tr style="font-size:2pt;">
     #                     <td width="40%" valign="top" style="text-align: left;">
-    #                         <b style="margin-top: 1pt;">Item Code &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>: {item_code} <br><br>
-    #                         <b style="margin-top: 1pt;">Item Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</b> {item_name} <br><br>
-    #                         <b style="margin-top: 1pt;">Item Qty &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</b>{item_qty} PCS <br><br>
-    #                         <b style="margin-top: 1pt;">Expiry Date &nbsp;&nbsp;&nbsp;:</b>{expiry_date} <br><br>
-    #                         <b style="margin-top: 1pt;">Received Date:</b>{receive_date} <br><br>
-    #                         <b style="margin-top: 1pt;">PO Number &nbsp;&nbsp;&nbsp;:</b>{po_number} <br><br>
+    #                         <b style="">Item Code &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>: {item_code} <br><br>
+    #                         <b style="">Item Name &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</b> {item_name} <br><br>
+    #                         <b style="">Item Qty &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:</b>{item_qty} PCS <br><br>
+    #                         <b style="">Expiry Date &nbsp;&nbsp;&nbsp;:</b>{expiry_date} <br><br>
+    #                         <b style="">Received Date:</b>{receive_date} <br><br>
+    #                         <b style="">PO Number &nbsp;&nbsp;&nbsp;:</b>{po_number} <br><br>
     #                     </td>
 
     #                     <!-- CENTER -->
     #                     <td width="40%" align="center" valign="top" style="text-align: left;">
-    #                         <b style="margin-top: 1pt;text-align: left;">Material:</b>{material} <br><br>
-    #                         <b style="margin-top: 1pt;">Pallet/Box:</b>{pallet_box} <br><br>
-    #                         <b style="margin-top: 1pt;text-align: left;">Shift:</b>{shift} <br><br>
-    #                         <b style="margin-top: 1pt;text-align: left;" >Batch No:</b>{batch} <br><br>
-    #                         <b style="margin-top: 1pt;text-align: left;">Supplier:</b>{supplier} <br><br>
+    #                         <b style="">Material:</b>{material} <br><br>
+    #                         <b style="">Pallet/Box:</b>{pallet_box} <br><br>
+    #                         <b style="">Shift:</b>{shift} <br><br>
+    #                         <b style="">Batch No:</b>{batch} <br><br>
+    #                         <b style="">Supplier:</b>{supplier} <br><br>
     #                     </td>
 
     #                     <td width="20%" align="right" valign="top" style="text-align: left;">
-    #                         <b style="margin-top: 1pt;text-align: left;">IQC Status</b> <br><br>
-    #                         <b style="margin-top: 1pt;text-align: left;">Pass</b> <br><br>
-    #                         <b style="margin-top: 1pt;text-align: left;">Fail</b> <br><br>
+    #                         <b style="text-align: left;">IQC Status</b> <br><br>
+    #                         <b style="text-align: left;">Pass</b> <br><br>
+    #                         <b style="text-align: left;">Fail</b> <br><br>
     #                     </td> 
 
     #                 </tr>
