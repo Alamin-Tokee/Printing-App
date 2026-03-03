@@ -135,7 +135,7 @@ class DifoPanel(QMainWindow):
 
         # Image
         self.image_label = QLabel()
-        pixmap = QPixmap("example.jpg")
+        pixmap = QPixmap("inc/ECD.jpg")
 
         if not pixmap.isNull():
             self.image_label.setPixmap(
@@ -179,7 +179,7 @@ class DifoPanel(QMainWindow):
         self.preview_text.setText(f"Printing label for:\n{barcode}")
 
         #update preview image
-        pixmap = QPixmap("example.jpg")  # Replace with dynamic image generation if needed
+        pixmap = QPixmap("inc/ECD.jpg")  # Replace with dynamic image generation if needed
         if not pixmap.isNull():
             self.image_label.setPixmap(
                 pixmap.scaled(450, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
