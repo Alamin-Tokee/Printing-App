@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
+    QGridLayout, QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStackedWidget, QLineEdit,
     QTableWidget, QTableWidgetItem, QFrame, QMessageBox, QGraphicsDropShadowEffect
 )
@@ -33,11 +33,11 @@ class DifoPanel(QMainWindow):
         self.stack = QStackedWidget()
 
         self.dashboard_page = self.create_dashboard_page()
-        self.users_page = self.create_users_page()
+        self.ecd_page = self.create_mapping_page()
         self.print_page = self.create_print_page()
 
         self.stack.addWidget(self.dashboard_page)
-        self.stack.addWidget(self.users_page)
+        self.stack.addWidget(self.ecd_page)
         self.stack.addWidget(self.print_page)
 
         main_layout.addWidget(self.sidebar)
@@ -273,41 +273,52 @@ class DifoPanel(QMainWindow):
         users = database.get_users()
         self.user_count_label.setText(f"Total Users: {len(users)}")
 
-    # ---------------- USERS ----------------
-    def create_users_page(self):
+    # ---------------- ECD MAPPINGS ----------------
+    def create_mapping_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        input_layout = QHBoxLayout()
 
-        self.name_input = QLineEdit()
-        self.name_input.setPlaceholderText("Name")
-        self.name_input.setMinimumWidth(200)
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(8)
 
-        self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("Email")
-        self.email_input.setMinimumWidth(200)
+        self.wbst_code_input = QLineEdit()
+        self.wbst_code_input.setPlaceholderText("WBST Code")
 
-        self.material_input = QLineEdit()
-        self.material_input.setPlaceholderText("Material Type")
+        self.wbst_product_model = QLineEdit()
+        self.wbst_product_model.setPlaceholderText("Product Model")
 
-        self.bath_input = QLineEdit()
-        self.bath_input.setPlaceholderText("Bath Number")
+        self.wbst_product_version = QLineEdit()
+        self.wbst_product_version.setPlaceholderText("Product Version")
 
-        self.po_input = QLineEdit()
-        self.po_input.setPlaceholderText("PO Number")
+        #---------------- FIELD DEFINITIONS ----------------
+        row1_fields = [
+            ("WBST Code", self.wbst_code_input),
+            ("Product Model", self.wbst_product_model),
+            ("Product Version", self.wbst_product_version)
+        ]
 
+        #---------------- ADD ROW1 ----------------
+        for col, (label_text, widget) in enumerate(row1_fields):
+            label = QLabel(label_text)
+            label.setStyleSheet("color: white;")
+            grid_layout.addWidget(label, 0, col)
+            grid_layout.addWidget(widget, 1, col)
 
-        input_layout.addWidget(self.name_input)
-        input_layout.addWidget(self.email_input) 
-        input_layout.addWidget(self.material_input)
-        input_layout.addWidget(self.bath_input)
-        input_layout.addWidget(self.po_input)
 
         add_btn = QPushButton("Add User")
-        delete_btn = QPushButton("Delete Selected")
+        add_btn.setFixedWidth(150)
+        #delete_btn = QPushButton("Delete Selected")
 
-        add_btn.clicked.connect(self.add_user)
-        delete_btn.clicked.connect(self.delete_user)
+        add_btn.clicked.connect(self.add_ecd_mapping)
+       # delete_btn.clicked.connect(self.delete_user)
+
+
+
+        # Button layout (left aligned)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()   # pushes buttons to right
+        button_layout.addWidget(add_btn)
+        #button_layout.addWidget(delete_btn)
 
 
         # -------- HORIZONTAL SPLIT AREA --------
@@ -321,8 +332,8 @@ class DifoPanel(QMainWindow):
 
         # RIGHT SIDE (Table)
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        self.table.setHorizontalHeaderLabels(["ID", "Name", "Email"])
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["ID", "WBST Code", "Product Model", "Product Version", "Insert Time"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
 
@@ -332,22 +343,23 @@ class DifoPanel(QMainWindow):
         # content_layout.addWidget(self.table, 2)         # right stretch bigger
 
 
-        side_title = QLabel("Manage Users")
+        side_title = QLabel("ECD Mappings")
+        side_title.setStyleSheet("font-size: 20px; font-weight: bold;color: white;")
         side_title.setObjectName("side_title")
         layout.addWidget(side_title)
         # layout.addWidget(self.name_input)
         # layout.addWidget(self.email_input)
-        layout.addLayout(input_layout)
-        layout.addWidget(add_btn)
-        layout.addWidget(delete_btn)
+        layout.addLayout(grid_layout)
+        layout.addLayout(button_layout)
+        #layout.addWidget(delete_btn)
         #layout.addLayout(content_layout)
         layout.addWidget(self.table)
 
-        self.load_users()
+        self.load_ecd_mappings()
         return page
 
-    def load_users(self):
-        data = database.get_users()
+    def load_ecd_mappings(self):
+        data = database.get_ecd_mappings()
         self.table.setRowCount(len(data))
 
         for row_idx, row_data in enumerate(data):
@@ -356,21 +368,22 @@ class DifoPanel(QMainWindow):
 
         self.update_dashboard_stats()
 
-    def add_user(self):
-        name = self.name_input.text().strip()
-        email = self.email_input.text().strip()
+    def add_ecd_mapping(self):
+        wsbt_code = self.wbst_code_input.text().strip()
+        product_model = self.wbst_product_model.text().strip()
+        product_version = self.wbst_product_version.text().strip()
 
-        if not name or not email:
+        if not wsbt_code or not product_model or not product_version:
             QMessageBox.warning(self, "Input Error", "All fields are required.")
             return
 
-        database.add_user(name, email)
-        self.name_input.clear()
-        self.email_input.clear()
-        self.load_users()
+        database.add_ecd_mapping(wsbt_code, product_model, product_version)
+        self.wbst_code_input.clear()
+        self.wbst_product_model.clear()
+        self.wbst_product_version.clear()
+        self.load_ecd_mappings()
 
         # Open print preview popup
-        self.open_print_preview(name, email)
 
 
     def open_print_preview(self, name, email):

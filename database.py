@@ -38,7 +38,15 @@ def create_table():
         is_admin BOOLEAN NOT NULL DEFAULT 0,
         is_active BOOLEAN NOT NULL DEFAULT 1
     );
-                   
+                         
+    CREATE TABLE IF NOT EXISTS ecd_mapping (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        wsbt_code VARCHAR(50) NOT NULL UNIQUE,
+        product_model VARCHAR(100) NOT NULL,
+        product_version VARCHAR(50) NOT NULL,
+        insert_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN NOT NULL DEFAULT 1
+    );
 
     """)
 
@@ -183,3 +191,58 @@ def delete_user_permission(permission_id):
     conn.close()
 
 
+
+# ----------------------- For ECD Mapping -----------------------
+def add_ecd_mapping(wsbt_code, product_model, product_version, is_active=True):
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO ecd_mapping (wsbt_code, product_model, product_version, is_active) 
+        VALUES (?, ?, ?, ?)
+    """, (wsbt_code, product_model, product_version, int(is_active)))
+
+    conn.commit()
+    conn.close()
+
+def get_ecd_mappings():
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, wsbt_code, product_model, product_version, insert_time, is_active FROM ecd_mapping")
+    mappings = cursor.fetchall()
+
+    conn.close()
+    return mappings
+
+def get_ecd_mapping_by_id(mapping_id):
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, wsbt_code, product_model, product_version, insert_time, is_active FROM ecd_mapping WHERE id=?", (mapping_id,))
+    mapping = cursor.fetchone()
+
+    conn.close()
+    return mapping
+
+def update_ecd_mapping(mapping_id, wsbt_code, product_model, product_version, is_active):
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE ecd_mapping 
+        SET wsbt_code=?, product_model=?, product_version=?, is_active=? 
+        WHERE id=?
+    """, (wsbt_code, product_model, product_version, int(is_active), mapping_id))
+
+    conn.commit()
+    conn.close()
+
+def delete_ecd_mapping(mapping_id):
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM ecd_mapping WHERE id=?", (mapping_id,))
+    conn.commit()
+    conn.close()    
+
+    
