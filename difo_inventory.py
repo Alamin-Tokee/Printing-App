@@ -11,7 +11,7 @@ from PyQt6.QtGui import QColor, QPageLayout, QPainter, QPixmap
 from datetime import datetime
 from PyQt6.QtGui import QTextDocument, QPageSize, QPageLayout
 from PyQt6.QtCore import QSizeF
-import database
+import database, data_content 
 
 
 class DifoPanel(QMainWindow):
@@ -201,12 +201,21 @@ class DifoPanel(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Database Error", f"Error adding scan history: {e}")
             return
+        
+
+        get_wbst_code = data_content.get_wbst_code_by_barcode(barcode)
+        get_mapping_date = database.get_ecd_mapping_by_wbst_code(get_wbst_code)
+        #print("Mapping Data:", get_mapping_date)
+        get_ecd_properties = data_content.get_ecd_mapping_properties(get_mapping_date[2], get_mapping_date[3])
+        #print("ECD Properties:", get_ecd_properties)
+
+        fie_url = get_ecd_properties[0]['file_url'] if get_ecd_properties else None
 
         # For demo, we just show the barcode in preview
         self.preview_text.setText(f"Printing label for:\n{barcode}")
 
         #update preview image
-        pixmap = QPixmap("inc/ECD.jpg")  # Replace with dynamic image generation if needed
+        pixmap = QPixmap(fie_url)  # Replace with dynamic image generation if needed
         if not pixmap.isNull():
             self.image_label.setPixmap(
                 pixmap.scaled(450, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)

@@ -209,17 +209,17 @@ def get_ecd_mappings():
     conn = connect()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, wsbt_code, product_model, product_version, insert_time, is_active FROM ecd_mapping")
+    cursor.execute("SELECT id, wsbt_code, product_model, product_version, insert_time, is_active FROM ecd_mapping ORDER BY id DESC")
     mappings = cursor.fetchall()
 
     conn.close()
     return mappings
 
-def get_ecd_mapping_by_id(mapping_id):
+def get_ecd_mapping_by_wbst_code(wbst_code):
     conn = connect()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, wsbt_code, product_model, product_version, insert_time, is_active FROM ecd_mapping WHERE id=?", (mapping_id,))
+    cursor.execute("SELECT id, wsbt_code, product_model, product_version, insert_time, is_active FROM ecd_mapping WHERE wsbt_code=?", (wbst_code,))
     mapping = cursor.fetchone()
 
     conn.close()
@@ -245,4 +245,4 @@ def delete_ecd_mapping(mapping_id):
     conn.commit()
     conn.close()    
 
-    
+
