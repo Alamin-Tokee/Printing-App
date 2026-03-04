@@ -152,6 +152,7 @@ class DifoPanel(QMainWindow):
         self.previous_scan = QTableWidget()
         self.previous_scan.setColumnCount(3)
         self.previous_scan.setHorizontalHeaderLabels(["ID", "Barcode", "Scan Time"])
+
         self.previous_scan.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.previous_scan.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.previous_scan.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
