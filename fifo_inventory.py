@@ -1,5 +1,5 @@
 import os
-
+import qrcode
 from PyQt6.QtWidgets import (
     QMainWindow, QTextEdit, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStackedWidget, QLineEdit,
@@ -9,10 +9,11 @@ from PyQt6.QtCore import Qt, QTimer, QDate
 from PyQt6.QtWidgets import QHeaderView
 from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt6.QtCore import QMarginsF, QRectF
-from PyQt6.QtGui import QPageLayout, QPainter, QPen, QFont, QPixmap, QTextOption
+from PyQt6.QtGui import QPageLayout, QPainter, QPen, QFont, QPixmap, QTextOption, QImage
 from datetime import datetime
 from PyQt6.QtGui import QTextDocument, QPageSize, QPageLayout
 from PyQt6.QtCore import QSizeF
+from PIL.ImageQt import ImageQt
 import database
 
 
@@ -299,6 +300,11 @@ class FifoPanel(QMainWindow):
 
     def open_print_preview(self, item_code, item_name, item_qty, material, batch, pallet_box,
                                 po_number, shift, supplier, receive_date, expiry_date):
+        
+        # -----------------------------
+        # Configure Printer
+        # -----------------------------
+
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         # Correct PyQt6 margins
         label_size = QSizeF(100, 78)  # mm
@@ -313,7 +319,7 @@ class FifoPanel(QMainWindow):
         preview.paintRequested.connect(lambda printer: self.print_document(printer, item_code, item_name, item_qty, material, batch, pallet_box,
                                 po_number, shift, supplier, receive_date, expiry_date))
 
-        #QTimer.singleShot(5000, preview.close)
+        QTimer.singleShot(3000, preview.close)
 
         preview.exec()
 
@@ -323,12 +329,8 @@ class FifoPanel(QMainWindow):
 
     
         # -----------------------------
-        # Configure Printer
+        # Configure Painter
         # -----------------------------
-        # printer.setResolution(300)  # 300 DPI, adjust if needed
-        # printer.setPageSizeMM(QSizeF(78, 100))
-        # printer.setFullPage(True)
-        # printer.setPageMargins(QMarginsF(0, 0, 0, 0))
 
         painter = QPainter(printer)
         dpi = printer.resolution()
@@ -367,13 +369,13 @@ class FifoPanel(QMainWindow):
         # -----------------------------
         # QR Codes
         # -----------------------------
-        qr_path = os.path.join(os.path.dirname(__file__), "qr.png")
-        qr = QPixmap(qr_path)
-        #print(f"Looking for QR code at: {qr_path}")
-        if qr.isNull():
-            print("QR image not loaded!")
+        logo_path = os.path.join(os.path.dirname(__file__), "inc/wlogo.jpeg")
+        logo = QPixmap(logo_path)
+        #print(f"Looking for logo at: {logo_path}")
+        if logo.isNull():
+            print("Logo image not loaded!")
         else:
-            painter.drawPixmap(int(mm(2)), int(mm(2)), int(mm(12)), int(mm(12)), qr)
+            painter.drawPixmap(int(mm(2)), int(mm(3)), int(mm(12)), int(mm(10)), logo)
 
         # -----------------------------
         # Big Code Box
@@ -382,11 +384,17 @@ class FifoPanel(QMainWindow):
         painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         painter.drawText(QRectF(mm(30), mm(15), mm(35), mm(10)),"4936934769456794769546", option_center)
 
+        # qr_path = os.path.join(os.path.dirname(__file__), "inc/qr.png")
+        # qr = QPixmap(qr_path)
+        
+        qr_data = "4936934769456794769546"
+
+        qr = self.generate_qr_pixmap(printer, qr_data, 14)  # 25mm QR
 
         if qr.isNull():
             print("QR image not loaded!")
         else:
-            painter.drawPixmap(int(mm(82)), int(mm(12)), int(mm(14)), int(mm(14)), qr)
+            painter.drawPixmap(int(mm(82)), int(mm(12)), qr)
 
         # -----------------------------
         # Columns Start Position
@@ -411,10 +419,18 @@ class FifoPanel(QMainWindow):
         y_left = start_y
 
         for label, value in left_details:
+            # ---- Bold font for label ----
+            bold_font = QFont("Arial", 8)
+            bold_font.setBold(True)
+            painter.setFont(bold_font)
             painter.drawText(QRectF(mm(5), y_left, mm(22), line_gap),
                             Qt.AlignmentFlag.AlignLeft,
                             label)
 
+            # ---- Normal font for colon and value ----
+            normal_font = QFont("Arial", 8)
+            normal_font.setBold(False)
+            painter.setFont(normal_font)
             painter.drawText(QRectF(mm(24), y_left, mm(3), line_gap),
                             Qt.AlignmentFlag.AlignLeft,
                             ":")
@@ -440,15 +456,23 @@ class FifoPanel(QMainWindow):
         y_mid = start_y
 
         for label, value in middle_details:
+            # ---- Bold font for label ----
+            bold_font = QFont("Arial", 8)
+            bold_font.setBold(True)
+            painter.setFont(bold_font)
             painter.drawText(QRectF(mm(47), y_mid, mm(20), line_gap),
                             Qt.AlignmentFlag.AlignLeft,
                             label)
 
-            painter.drawText(QRectF(mm(64), y_mid, mm(3), line_gap),
+            # ---- Normal font for colon and value ----
+            normal_font = QFont("Arial", 8)
+            normal_font.setBold(False)
+            painter.setFont(normal_font)
+            painter.drawText(QRectF(mm(63), y_mid, mm(3), line_gap),
                             Qt.AlignmentFlag.AlignLeft,
                             ":")
 
-            painter.drawText(QRectF(mm(68), y_mid, mm(20), line_gap),
+            painter.drawText(QRectF(mm(67), y_mid, mm(20), line_gap),
                             Qt.AlignmentFlag.AlignLeft,
                             str(value))
 
@@ -477,6 +501,30 @@ class FifoPanel(QMainWindow):
         # Finish
         # -----------------------------
         painter.end()
+
+
+    def generate_qr_pixmap(self, printer, data, size_mm=14):
+        # Generate QR code using qrcode library
+        qr = qrcode.QRCode(version=1, box_size=10, border=0)
+        qr.add_data(data)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+        # Convert PIL -> QImage -> QPixmap (IN MEMORY)
+        qt_image = ImageQt(img)
+        qimage = QImage(qt_image)
+        pixmap = QPixmap.fromImage(qimage)
+
+        # Convert PIL image to QPixmap
+        # img.save("temp_qr.png")
+        # pixmap = QPixmap("temp_qr.png")
+
+        # Scale pixmap to desired size in mm
+        dpi = printer.resolution()
+        size_px = int(size_mm * dpi / 25.4)
+
+        return pixmap.scaled(size_px, size_px, Qt.AspectRatioMode.KeepAspectRatio)
 
     
     # def print_document(self, printer, item_code, item_name, item_qty, material, batch, pallet_box,

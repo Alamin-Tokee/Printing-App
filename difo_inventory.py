@@ -149,11 +149,17 @@ class DifoPanel(QMainWindow):
 
                     
 
-        self.previous_scan = QTextEdit()
-        self.previous_scan.setReadOnly(True)
-        self.previous_scan.setPlaceholderText("Previous Scans...")
-       
+        self.previous_scan = QTableWidget()
+        self.previous_scan.setColumnCount(3)
+        self.previous_scan.setHorizontalHeaderLabels(["ID", "Barcode", "Scan Time"])
+        self.previous_scan.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.previous_scan.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.previous_scan.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
 
+
+        # Stretch columns
+        self.previous_scan.horizontalHeader().setStretchLastSection(True)
+       
 
         # Add to content layout
         content_layout.addWidget(self.preview_area, 1)
@@ -165,7 +171,22 @@ class DifoPanel(QMainWindow):
         layout.addWidget(title)
         layout.addLayout(input_layout)
         layout.addLayout(content_layout)
+
+        self.load_scan_history()
+
         return page
+    
+
+    # Load scan history from database
+    
+    def load_scan_history(self):
+        history = database.get_scan_history()
+        self.previous_scan.setRowCount(len(history))
+
+        for row_idx, (id, barcode, scan_time) in enumerate(history):
+            self.previous_scan.setItem(row_idx, 0, QTableWidgetItem(str(id)))
+            self.previous_scan.setItem(row_idx, 1, QTableWidgetItem(barcode))
+            self.previous_scan.setItem(row_idx, 2, QTableWidgetItem(scan_time))
     
 
     #----------------- PRINTING LOGIC ----------------
@@ -173,6 +194,12 @@ class DifoPanel(QMainWindow):
         barcode = self.barcode.text().strip()
         if not barcode:
             QMessageBox.warning(self, "Input Error", "Please enter a barcode.")
+            return
+        
+        try:
+            database.add_scan_history(barcode)
+        except Exception as e:
+            QMessageBox.critical(self, "Database Error", f"Error adding scan history: {e}")
             return
 
         # For demo, we just show the barcode in preview
@@ -190,29 +217,35 @@ class DifoPanel(QMainWindow):
             printer.setFullPage(True)
             painter = QPainter(printer)
 
-            # Correct usage: pass unit to pageRect
-            page_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
+            # Get printer DPI
+            dpi = printer.resolution()
 
-            # make integer for drawPixmap
-            page_size = page_rect.size().toSize()
+            #Convert mm to pixels
+            def mm_to_px(mm_val):
+                return int(mm_val * dpi / 25.4)
+            
+            width_px = mm_to_px(160)
+            height_px = mm_to_px(90)
 
             # Scale image to fit page
             scaled_pixmap = pixmap.scaled(
-                page_size,
+                width_px, height_px,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             )
 
-            # Center image
+            # Center image on page
+            page_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
             x = (page_rect.width() - scaled_pixmap.width()) // 2
             y = (page_rect.height() - scaled_pixmap.height()) // 2
             painter.drawPixmap(int(x), int(y), scaled_pixmap)
             painter.end()
 
         # Add to previous scans
-        current_text = self.previous_scan.toPlainText()
-        new_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {barcode}"
-        self.previous_scan.setText(current_text + new_entry + "\n")
+        #current_text = self.previous_scan.toPlainText()
+        #new_entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {barcode}"
+        ##self.previous_scan.setText(current_text + new_entry + "\n")
+        self.load_scan_history()
 
         # Clear input
         self.barcode.clear()
@@ -400,7 +433,7 @@ class DifoPanel(QMainWindow):
 
         document.setHtml(html_content)
 
-        # ✅ Correct Qt6 single-page label sizing
+        # Correct Qt6 single-page label sizing
         page_rect = printer.pageLayout().paintRect(QPageLayout.Unit.Millimeter)
         document.setPageSize(QSizeF(page_rect.width(), page_rect.height()))
 

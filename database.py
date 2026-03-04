@@ -8,7 +8,7 @@ def create_table():
     conn = connect()
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.executescript("""
         CREATE TABLE IF NOT EXISTS fifo_inventory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_code VARCHAR(50) NOT NULL,
