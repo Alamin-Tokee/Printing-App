@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QPushButton,  QLineEdit, QMessageBox, QDialog, QFormLayout
+    QLabel, QPushButton,  QLineEdit, QMessageBox, QDialog, QFormLayout
 )
 from PyQt6.QtCore import Qt
 import database, data_content
@@ -7,7 +7,7 @@ import database, data_content
 class SignInDialog(QDialog):
     def __init__(self, project=None):
         super().__init__()
-        self.setWindowTitle("DIFO Sign In")
+        self.setWindowTitle("Sign In")
         self.setFixedSize(400, 350)
         self.setStyleSheet("background-color: #2c2c2c; color: white;")
         self.project = project
@@ -31,8 +31,22 @@ class SignInDialog(QDialog):
         self.access_code_input.setPlaceholderText("Enter access code")
         self.access_code_input.setStyleSheet("padding: 5px; border-radius: 5px;")
 
+
+         # OR Label
+        title_label = QLabel("User Login")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("color: white; font-weight: bold;font-size: 20px; margin-bottom: 10px;")
+
+        # OR Label
+        or_label = QLabel("────────  OR  ────────")
+        or_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        or_label.setStyleSheet("color: white; font-weight: bold;")
+
+        # Add widgets
+        layout.addRow(title_label)  # Title
         layout.addRow("EMP ID:", self.emp_id_input)
         layout.addRow("Password:", self.pass_input)
+        layout.addRow("", or_label)  # OR separator
         layout.addRow("Access Code:", self.access_code_input)
 
         # Login button
@@ -42,14 +56,18 @@ class SignInDialog(QDialog):
                 background-color: #00b894;
                 border-radius: 10px;
                 padding: 8px;
+                text-align: center;
                 font-weight: bold;
+                margin-top: 10px;
+                color: white;
             }
             QPushButton:hover {
                 background-color: #019875;
             }
         """)
+
         self.login_btn.clicked.connect(self.check_credentials)
-        layout.addWidget(self.login_btn)
+        layout.addRow("", self.login_btn)
 
     def check_credentials(self):
         emp_id = self.emp_id_input.text()
