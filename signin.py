@@ -2,13 +2,15 @@ from PyQt6.QtWidgets import (
     QPushButton,  QLineEdit, QMessageBox, QDialog, QFormLayout
 )
 from PyQt6.QtCore import Qt
+import database, data_content
 # ---------------- Sign-In Dialog ----------------
 class SignInDialog(QDialog):
-    def __init__(self):
+    def __init__(self, project=None):
         super().__init__()
         self.setWindowTitle("DIFO Sign In")
         self.setFixedSize(400, 350)
         self.setStyleSheet("background-color: #2c2c2c; color: white;")
+        self.project = project
         self.init_ui()
 
     def init_ui(self):
@@ -52,9 +54,32 @@ class SignInDialog(QDialog):
     def check_credentials(self):
         emp_id = self.emp_id_input.text()
         password = self.pass_input.text()
+
         access_code = self.access_code_input.text()
 
-        if emp_id and password and access_code:
-            self.accept()
+        if emp_id and password:
+            verity_user = data_content.verify_hrms_login_credentials(emp_id, password)
+            print(f"HRMS login verification for user {emp_id}: {verity_user}")
+            if verity_user:
+                if self.project:
+                    has_permission = database.check_user_permission(emp_id, self.project)
+                    print(f"Permission check for user {emp_id} on project {self.project}: {has_permission}")
+                    if has_permission:
+                        self.emp_id = emp_id  # Store user ID for later use
+                        self.project = self.project  # Store project for later use
+                        self.accept()
+                    else:
+                        QMessageBox.warning(self, "Permission Denied", "You don't have permission to access this project.")
+                else:
+                    QMessageBox.warning(self, "Permission Denied", "You do not have permission to access this project.")
+
+        elif access_code:
+             if access_code == "ECD123":
+                self.emp_id = access_code  # Store user ID for later use
+                self.project = self.project
+                self.accept()
+             else:
+                QMessageBox.warning(self, "Invalid Access Code", "The access code you entered is incorrect.")
+
         else:
-            QMessageBox.warning(self, "Error", "Please fill all fields")
+             QMessageBox.warning(self, "Error", "Please fill all fields")

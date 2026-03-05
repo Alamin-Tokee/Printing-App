@@ -15,12 +15,14 @@ import database, data_content
 
 
 class DifoPanel(QMainWindow):
-    def __init__(self):
+    def __init__(self, emp_id, project):
         super().__init__()
+
+        self.emp_id = emp_id
+        self.project = project
 
         self.setWindowTitle("Professional Dark Dashboard")
         self.setMinimumSize(1000, 600)
-
         self.init_ui()
 
     # ---------------- MAIN UI ----------------
@@ -29,16 +31,32 @@ class DifoPanel(QMainWindow):
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
 
-        self.sidebar = self.create_sidebar()
+        project_permissions = database.get_user_permission_by_user(self.emp_id, self.project)
+
+        get_subproject = project_permissions[3] if project_permissions else "N/A"
+        array_subproject = get_subproject.split("#") if get_subproject else []
+
+        self.sidebar = self.create_sidebar(array_subproject)
         self.stack = QStackedWidget()
 
-        self.dashboard_page = self.create_dashboard_page()
-        self.ecd_page = self.create_mapping_page()
-        self.print_page = self.create_print_page()
 
-        self.stack.addWidget(self.dashboard_page)
-        self.stack.addWidget(self.ecd_page)
-        self.stack.addWidget(self.print_page)
+        if "dashboard" in array_subproject:
+             self.dashboard_page = self.create_dashboard_page()
+             self.stack.addWidget(self.dashboard_page)
+        if "mapping" in array_subproject:
+             self.ecd_page = self.create_mapping_page()
+             self.stack.addWidget(self.ecd_page)   
+        if "printing" in array_subproject:
+             self.print_page = self.create_print_page()
+             self.stack.addWidget(self.print_page)
+
+        # self.dashboard_page = self.create_dashboard_page()
+        # self.ecd_page = self.create_mapping_page()
+        # self.print_page = self.create_print_page()
+
+        # self.stack.addWidget(self.dashboard_page)
+        # self.stack.addWidget(self.ecd_page)
+        # self.stack.addWidget(self.print_page)
 
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.stack)
@@ -46,7 +64,7 @@ class DifoPanel(QMainWindow):
         self.statusBar().showMessage("Connected to Database")
 
     # ---------------- SIDEBAR ----------------
-    def create_sidebar(self):
+    def create_sidebar(self, array_subproject):
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
         sidebar.setFixedWidth(220)
@@ -55,20 +73,40 @@ class DifoPanel(QMainWindow):
         title = QLabel("ECD Printing")
         title.setObjectName("title")
         layout.addWidget(title)
-        btn_dashboard = QPushButton("Dashboard")
-        btn_users = QPushButton("Mapping")
-        print_label = QPushButton("Printing")
+        if "dashboard" in array_subproject:
+            btn_dashboard = QPushButton("Dashboard")
+            btn_dashboard.clicked.connect(lambda: self.show_page(self.dashboard_page) if hasattr(self, "dashboard_page") else None)
+            layout.addWidget(btn_dashboard)
+        if "mapping" in array_subproject:
+            btn_users = QPushButton("Mapping")
+            btn_users.clicked.connect(lambda: self.show_page(self.ecd_page) if hasattr(self, "ecd_page") else None)
+            layout.addWidget(btn_users)
+        if "printing" in array_subproject:
+            print_label = QPushButton("Printing")
+            print_label.clicked.connect(lambda: self.show_page(self.print_page) if hasattr(self, "print_page") else None)
+            layout.addWidget(print_label)
 
-        btn_dashboard.clicked.connect(self.show_dashboard)
-        btn_users.clicked.connect(self.show_users)
-        print_label.clicked.connect(self.show_print_label)
+        # btn_dashboard.clicked.connect(self.show_dashboard)
+        # btn_users.clicked.connect(self.show_users)
+        # print_label.clicked.connect(self.show_print_label)
 
-        layout.addWidget(btn_dashboard)
-        layout.addWidget(btn_users)
-        layout.addWidget(print_label)
+        # btn_dashboard.clicked.connect(lambda: self.show_page(self.dashboard_page) if hasattr(self, "dashboard_page") else None)
+        # btn_users.clicked.connect(lambda: self.show_page(self.ecd_page) if hasattr(self, "ecd_page") else None)
+        # print_label.clicked.connect(lambda: self.show_page(self.print_page) if hasattr(self, "print_page") else None)
+
+        # layout.addWidget(btn_dashboard)
+        # layout.addWidget(btn_users)
+        # layout.addWidget(print_label)
         layout.addStretch()
 
         return sidebar
+    
+    def show_page(self, page_widget):
+        if page_widget:
+            self.stack.setCurrentWidget(page_widget)
+            # optionally update dashboard stats
+            if page_widget == getattr(self, "dashboard_page", None):
+                self.update_dashboard_stats()
 
     def show_dashboard(self):
         self.stack.setCurrentIndex(0)
@@ -280,6 +318,8 @@ class DifoPanel(QMainWindow):
         return page
 
     def update_dashboard_stats(self):
+        if not hasattr(self, "user_count_label"):
+            return
         users = database.get_users()
         self.user_count_label.setText(f"Total Users: {len(users)}")
 
@@ -376,7 +416,7 @@ class DifoPanel(QMainWindow):
             for col_idx, col_data in enumerate(row_data):
                 self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
 
-        self.update_dashboard_stats()
+        # self.update_dashboard_stats()
 
     def add_ecd_mapping(self):
         wsbt_code = self.wbst_code_input.text().strip()

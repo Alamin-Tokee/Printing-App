@@ -73,8 +73,11 @@ class MainWindow(QMainWindow):
         #self.close()  # optional
 
     def open_difo(self):
-        #sign_in = SignInDialog()
-        #if sign_in.exec():  # Only open DIFO if login succeeded
-        self.difo_window = DifoPanel()
-        self.difo_window.show()
+        project = "ecd_printing"
+        sign_in = SignInDialog(project)
+        if sign_in.exec():  # Only open DIFO if login succeeded
+            emp_id = sign_in.emp_id  # Store logged-in user ID
+            project = sign_in.project  # Store project for later use
+            self.difo_window = DifoPanel(emp_id, project)
+            self.difo_window.show()
             #self.close()  # optional

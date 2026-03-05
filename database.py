@@ -149,6 +149,24 @@ def add_user_permission(username, project, subproject, is_admin=False, is_active
     conn.commit()
     conn.close()
 
+def check_user_permission(username, project):
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT is_active FROM user_permissions 
+        WHERE username=? AND project=?
+    """, (username, project))
+
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        is_active = result[0]   # get the actual value
+        return is_active == 1
+
+    return False
+
 def get_user_permissions():
     conn = connect()
     cursor = conn.cursor()
@@ -160,11 +178,11 @@ def get_user_permissions():
     return permissions 
 
 
-def get_user_permission_by_id(permission_id):
+def get_user_permission_by_user(username, project):
     conn = connect()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, username, project, subproject, is_admin, is_active FROM user_permissions WHERE id=?", (permission_id,))
+    cursor.execute("SELECT id, username, project, subproject, is_admin, is_active FROM user_permissions WHERE username=? AND project=?", (username, project))
     permission = cursor.fetchone()
 
     conn.close()
@@ -183,10 +201,10 @@ def update_user_permission(permission_id, username, project, subproject, is_admi
     conn.commit()
     conn.close()
 
-def delete_user_permission(permission_id):
+def delete_user_permission(username, project):
     conn = connect()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_permissions WHERE id=?", (permission_id,))
+    cursor.execute("DELETE FROM user_permissions WHERE username=? AND project=?", (username, project))
     conn.commit()
     conn.close()
 
