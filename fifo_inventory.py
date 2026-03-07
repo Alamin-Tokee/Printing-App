@@ -18,10 +18,13 @@ import database
 
 
 class FifoPanel(QMainWindow):
-    def __init__(self):
+    def __init__(self, emp_id=None, project=None):
         super().__init__()
 
-        self.setWindowTitle("Professional Dark Dashboard")
+        self.emp_id = emp_id
+        self.project = project
+
+        self.setWindowTitle("Fifo Inventory Management")
         self.setMinimumSize(1000, 600)
 
         self.init_ui()
@@ -32,14 +35,26 @@ class FifoPanel(QMainWindow):
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
 
-        self.sidebar = self.create_sidebar()
+        project_permissions = database.get_user_permission_by_user(self.emp_id, self.project)
+
+        get_subproject = project_permissions[3] if project_permissions else "N/A"
+        array_subproject = get_subproject.split("#") if get_subproject else []
+
+        self.sidebar = self.create_sidebar(array_subproject)
         self.stack = QStackedWidget()
 
-        self.dashboard_page = self.create_dashboard_page()
-        self.users_page = self.create_users_page()
+        if "dashboard" in array_subproject:
+             self.dashboard_page = self.create_dashboard_page()
+             self.stack.addWidget(self.dashboard_page)
+        if "printing" in array_subproject:
+             self.printing_page = self.create_printing_page()
+             self.stack.addWidget(self.printing_page)   
 
-        self.stack.addWidget(self.dashboard_page)
-        self.stack.addWidget(self.users_page)
+        # self.dashboard_page = self.create_dashboard_page()
+        # self.printing_page = self.create_printing_page()
+
+        # self.stack.addWidget(self.dashboard_page)
+        # self.stack.addWidget(self.printing_page)
 
         main_layout.addWidget(self.sidebar)
         main_layout.addWidget(self.stack)
@@ -47,7 +62,7 @@ class FifoPanel(QMainWindow):
         self.statusBar().showMessage("Connected to Database")
 
     # ---------------- SIDEBAR ----------------
-    def create_sidebar(self):
+    def create_sidebar(self, array_subproject):
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
         sidebar.setFixedWidth(220)
@@ -56,23 +71,45 @@ class FifoPanel(QMainWindow):
         title = QLabel("FIFO Inventory")
         title.setObjectName("title")
         layout.addWidget(title)
-        btn_dashboard = QPushButton("Dashboard")
-        btn_users = QPushButton("Users")
 
-        btn_dashboard.clicked.connect(self.show_dashboard)
-        btn_users.clicked.connect(self.show_users)
+        if "dashboard" in array_subproject:
+            btn_dashboard = QPushButton("Dashboard")
+            btn_dashboard.clicked.connect(lambda: self.show_page(self.dashboard_page) if hasattr(self, "dashboard_page") else None)
+            layout.addWidget(btn_dashboard)
 
-        layout.addWidget(btn_dashboard)
-        layout.addWidget(btn_users)
+        if "printing" in array_subproject:
+            btn_printing = QPushButton("Printing")
+            btn_printing.clicked.connect(lambda: self.show_page(self.printing_page) if hasattr(self, "printing_page") else None)
+            layout.addWidget(btn_printing)
+
+        # btn_dashboard = QPushButton("Dashboard")
+        # btn_printing = QPushButton("Printing")
+
+        # btn_dashboard.clicked.connect(self.show_dashboard)
+        # btn_printing.clicked.connect(self.show_printing)
+
+        # layout.addWidget(btn_dashboard)
+        # layout.addWidget(btn_printing)
+
+
         layout.addStretch()
 
         return sidebar
+    
+
+    def show_page(self, page_widget):
+        if page_widget:
+            self.stack.setCurrentWidget(page_widget)
+            # optionally update dashboard stats
+            if page_widget == getattr(self, "dashboard_page", None):
+                self.update_dashboard_stats()
+
 
     def show_dashboard(self):
         self.stack.setCurrentIndex(0)
         self.update_dashboard_stats()
 
-    def show_users(self):
+    def show_printing(self):
         self.stack.setCurrentIndex(1)
 
     # ---------------- DASHBOARD ----------------
@@ -99,7 +136,7 @@ class FifoPanel(QMainWindow):
         self.user_count_label.setText(f"Total Users: {len(users)}")
 
         # ---------------- USERS ----------------
-    def create_users_page(self):
+    def create_printing_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
 
@@ -245,7 +282,7 @@ class FifoPanel(QMainWindow):
             for col_idx, col_data in enumerate(row_data):
                 self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
 
-        self.update_dashboard_stats()
+        # self.update_dashboard_stats()
 
     def add_user(self):
         # ---------- GET VALUES FROM INPUTS ----------

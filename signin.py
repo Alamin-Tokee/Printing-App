@@ -92,7 +92,11 @@ class SignInDialog(QDialog):
                     QMessageBox.warning(self, "Permission Denied", "You do not have permission to access this project.")
 
         elif access_code:
-             if access_code == "ECD123":
+             if self.project == "ecd_printing" and access_code == "ECD123":
+                self.emp_id = access_code  # Store user ID for later use
+                self.project = self.project
+                self.accept()
+             elif self.project == "fifo_inventory" and access_code == "FIFO123":
                 self.emp_id = access_code  # Store user ID for later use
                 self.project = self.project
                 self.accept()
