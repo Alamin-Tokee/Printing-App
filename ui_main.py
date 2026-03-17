@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         fifo_card = self.create_card("FIFO")
         fifo_card.clicked.connect(self.open_fifo)
 
-        difo_card = self.create_card("DIFO")
+        difo_card = self.create_card("ECD")
         difo_card.clicked.connect(self.open_difo)
 
         card_layout.addWidget(fifo_card)

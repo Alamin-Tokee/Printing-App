@@ -262,7 +262,7 @@ class FifoPanel(QMainWindow):
 
         # ----------- MAIN LAYOUT -----------
 
-        side_title = QLabel("Manage Users")
+        side_title = QLabel("Manage Label Data")
         side_title.setStyleSheet("font-size: 20px; font-weight: bold;color: white;")
 
         layout.addWidget(side_title)
